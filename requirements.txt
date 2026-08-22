@@ -1,0 +1,2 @@
+# ClearRAG Dependencies
+# Dependencies will be specified after environment and GPU compatibility testing.
