@@ -59,6 +59,8 @@ checkpoints/
 
 # Dataset files
 # Raw data is tracked
+data/corpus/*
+!data/corpus/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
 data/evaluation/*
