@@ -1,0 +1,22 @@
+# ClearRAG Evidence Verification Configuration
+
+claim_extraction:
+  default_strategy: "rule_based"
+  max_claims_per_question: 4
+
+evidence_matching:
+  min_entity_match_ratio: 0.5
+  min_lexical_overlap_ratio: 0.25
+  min_semantic_similarity_score: 0.55
+  support_score_threshold: 0.65
+
+conflict_detection:
+  enable_numeric_conflict_detection: true
+  enable_date_conflict_detection: true
+  numeric_relative_tolerance: 0.01  # Exact match for integers/years unless tolerance allows
+  require_same_entity_context: true
+
+sufficiency_policy:
+  require_all_claims_supported_for_full: true
+  allow_partial_if_any_supported: true
+  conflict_overrides_all: true
