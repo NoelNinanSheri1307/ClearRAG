@@ -58,12 +58,13 @@ checkpoints/
 *.gguf
 
 # Dataset files
-data/raw/*
-!data/raw/.gitkeep
+# Raw data is tracked
 data/processed/*
 !data/processed/.gitkeep
 data/evaluation/*
 !data/evaluation/.gitkeep
+!data/evaluation/README.md
+!data/evaluation/questions.json
 
 # Generated experiment results and logs
 results/*

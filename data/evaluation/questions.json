@@ -1,0 +1,69 @@
+[
+  {
+    "id": "eval_001",
+    "question": "What is the primary mechanism of action of Aspirin?",
+    "category": "answerable",
+    "ground_truth": "Aspirin irreversibly inhibits cyclooxygenase-1 (COX-1) and modifies cyclooxygenase-2 (COX-2) enzymatic activity, reducing the synthesis of prostaglandins and thromboxanes.",
+    "supporting_documents": [
+      "doc_pharma_01.txt"
+    ],
+    "supporting_passages": [
+      "Aspirin acts by irreversibly inhibiting cyclooxygenase-1 (COX-1) and modifying the enzymatic activity of cyclooxygenase-2 (COX-2), thereby suppressing the production of prostaglandins and thromboxanes."
+    ],
+    "expected_behavior": "Generate an accurate, faithful answer directly supported by the retrieved evidence without adding unverified claims."
+  },
+  {
+    "id": "eval_002",
+    "question": "What was the exact market cap of Project NeoTech on January 1, 2035?",
+    "category": "unanswerable",
+    "ground_truth": null,
+    "supporting_documents": [],
+    "supporting_passages": [],
+    "expected_behavior": "Explicitly abstain from answering and state that the provided evidence does not contain sufficient information."
+  },
+  {
+    "id": "eval_003",
+    "question": "Who founded ExampleCorp, in what year, and what was its IPO opening price?",
+    "category": "partially_answerable",
+    "ground_truth": "ExampleCorp was founded by Alice Smith and Bob Johnson in 2012. (Note: IPO opening price is not mentioned in available records).",
+    "supporting_documents": [
+      "doc_company_01.txt"
+    ],
+    "supporting_passages": [
+      "ExampleCorp was founded in 2012 by Alice Smith and Bob Johnson to develop distributed database solutions."
+    ],
+    "expected_behavior": "Answer the verifiable components (founders and founding year) and explicitly declare that the IPO opening price cannot be determined from the available evidence."
+  },
+  {
+    "id": "eval_004",
+    "question": "What is the standard maximum operating temperature of Sensor Unit X-9?",
+    "category": "conflicting",
+    "ground_truth": null,
+    "supporting_documents": [
+      "manual_rev_a.txt",
+      "manual_rev_b.txt"
+    ],
+    "supporting_passages": [
+      "Manual Revision A specifies: 'The maximum operating temperature for Sensor Unit X-9 is 75°C.'",
+      "Manual Revision B specifies: 'The maximum operating temperature for Sensor Unit X-9 is 95°C.'"
+    ],
+    "expected_behavior": "Detect the contradiction between retrieved sources, report the conflicting values, and abstain from presenting a single unverified claim as fact."
+  },
+  {
+    "id": "eval_005",
+    "question": "Which solar eclipse occurred on August 21, 2017?",
+    "category": "distractor_heavy",
+    "ground_truth": "The Great American Eclipse (a total solar eclipse) occurred across the contiguous United States on August 21, 2017.",
+    "supporting_documents": [
+      "doc_astronomy_target.txt",
+      "doc_astronomy_distractor_1.txt",
+      "doc_astronomy_distractor_2.txt"
+    ],
+    "supporting_passages": [
+      "On August 21, 2017, a total solar eclipse dubbed the 'Great American Eclipse' crossed the entire contiguous United States.",
+      "On July 22, 2009, a total solar eclipse occurred with the longest totality of the 21st century across Asia.",
+      "An annular solar eclipse was observed on October 14, 2023, passing from the Pacific Northwest to Texas."
+    ],
+    "expected_behavior": "Filter out irrelevant or distracting passages and generate a focused response based solely on the relevant evidence."
+  }
+]
