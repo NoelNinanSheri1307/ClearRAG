@@ -46,6 +46,10 @@ class ClearRAGResult:
     generation_latency_ms: float = 0.0
     total_latency_ms: float = 0.0
 
+    # Fine-grained attribution and grounding
+    attributions: List[Dict[str, Any]] = field(default_factory=list)
+    grounding_metrics: Dict[str, float] = field(default_factory=dict)
+
     # Metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -64,6 +68,8 @@ class ClearRAGResult:
             "explanation": self.explanation,
             "abstention_reason": self.abstention_reason,
             "caveat_text": self.caveat_text,
+            "attributions": self.attributions,
+            "grounding_metrics": self.grounding_metrics,
             "retrieval_latency_ms": round(self.retrieval_latency_ms, 2),
             "verification_latency_ms": round(self.verification_latency_ms, 2),
             "generation_latency_ms": round(self.generation_latency_ms, 2),

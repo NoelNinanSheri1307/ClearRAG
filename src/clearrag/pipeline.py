@@ -2,11 +2,11 @@
 
 Orchestrates the full ClearRAG flow:
     Retrieve -> Extract Claims -> Verify Evidence -> Sufficiency
-    -> Decision -> (Conditional Generation) -> ClearRAGResult
+    -> Decision -> (Conditional Grounded Generation) -> Attribution -> ClearRAGResult
 
 For ABSTAIN and CONFLICT_ABSTENTION, the LLM generator is NOT invoked.
 For ANSWER_WITH_CAVEAT, the generator receives a caveat-aware prompt.
-For ANSWER, the generator receives only verified supporting evidence.
+For ANSWER, the generator receives verified supporting evidence and grounding instructions.
 """
 
 import logging
@@ -15,6 +15,10 @@ from typing import Any, Dict, List, Optional
 
 from src.clearrag.decision import ClearRAGDecision, ClearRAGDecisionEngine
 from src.clearrag.result import ClearRAGResult
+from src.generation.attribution import AttributionEngine
+from src.generation.caveat_generator import CaveatPromptBuilder
+from src.generation.generation_metrics import compute_grounding_metrics
+from src.generation.grounded_generator import GroundedPromptBuilder
 from src.generation.llm_generator import LLMGenerator
 from src.generation.prompt_builder import PromptBuilder
 from src.retrieval.retriever import Retriever
@@ -25,8 +29,7 @@ from src.verification.sufficiency import SufficiencyEngine
 
 logger = logging.getLogger(__name__)
 
-
-# Caveat-aware system prompt for ANSWER_WITH_CAVEAT decisions
+# Standard prompt presets
 CAVEAT_SYSTEM_PROMPT = (
     "You are a helpful assistant. Answer the question based on the provided context. "
     "Be concise, direct, and factual. "
@@ -35,7 +38,6 @@ CAVEAT_SYSTEM_PROMPT = (
     "Do not invent information not present in the provided context."
 )
 
-# Standard system prompt for ANSWER decisions
 ANSWER_SYSTEM_PROMPT = (
     "You are a helpful assistant. Answer the question based on the provided context. "
     "Be concise, direct, and factual. Only use information from the provided context."
@@ -43,21 +45,7 @@ ANSWER_SYSTEM_PROMPT = (
 
 
 class ClearRAGPipeline:
-    """ClearRAG pipeline with evidence-grounded decision control and conditional generation.
-
-    Architecture:
-        Question
-            -> Retriever (frozen)
-            -> RuleBasedClaimExtractor (frozen)
-            -> EvidenceVerifier (frozen)
-            -> SufficiencyEngine (frozen)
-            -> ClearRAGDecisionEngine (new)
-            -> Conditional LLMGenerator
-            -> ClearRAGResult
-
-    This class integrates the existing retrieval + verification foundation
-    with the new decision + abstention layer without modifying existing components.
-    """
+    """ClearRAG pipeline with evidence-grounded decision control, conditional generation, and attribution."""
 
     def __init__(
         self,
@@ -68,19 +56,27 @@ class ClearRAGPipeline:
         evidence_verifier: Optional[EvidenceVerifier] = None,
         sufficiency_engine: Optional[SufficiencyEngine] = None,
         prompt_builder: Optional[PromptBuilder] = None,
+        grounded_builder: Optional[GroundedPromptBuilder] = None,
+        caveat_builder: Optional[CaveatPromptBuilder] = None,
+        attribution_engine: Optional[AttributionEngine] = None,
         default_top_k: int = 5,
+        generation_mode: str = "standard",
     ):
         """Initialize ClearRAGPipeline.
 
         Args:
-            retriever: Initialized Retriever instance (frozen).
-            generator: Initialized LLMGenerator instance (used only when permitted).
-            decision_engine: Optional ClearRAGDecisionEngine (default policy if None).
-            claim_extractor: Optional claim extractor (default RuleBasedClaimExtractor).
-            evidence_verifier: Optional evidence verifier (default EvidenceVerifier).
-            sufficiency_engine: Optional sufficiency engine (default SufficiencyEngine).
-            prompt_builder: Optional prompt builder (default PromptBuilder).
-            default_top_k: Default number of evidence chunks to retrieve.
+            retriever: Initialized Retriever instance.
+            generator: Initialized LLMGenerator instance.
+            decision_engine: Decision policy engine.
+            claim_extractor: Claim extractor instance.
+            evidence_verifier: Evidence verifier instance.
+            sufficiency_engine: Sufficiency engine instance.
+            prompt_builder: Standard prompt builder.
+            grounded_builder: Grounded prompt builder.
+            caveat_builder: Caveat prompt builder.
+            attribution_engine: Attribution engine for fine-grained claim tracing.
+            default_top_k: Number of evidence chunks to retrieve.
+            generation_mode: 'standard' or 'grounded'.
         """
         self.retriever = retriever
         self.generator = generator
@@ -89,13 +85,18 @@ class ClearRAGPipeline:
         self.evidence_verifier = evidence_verifier or EvidenceVerifier()
         self.sufficiency_engine = sufficiency_engine or SufficiencyEngine()
         self.prompt_builder = prompt_builder or PromptBuilder()
+        self.grounded_builder = grounded_builder or GroundedPromptBuilder()
+        self.caveat_builder = caveat_builder or CaveatPromptBuilder()
+        self.attribution_engine = attribution_engine or AttributionEngine()
         self.default_top_k = default_top_k
+        self.generation_mode = generation_mode
 
     def answer(
         self,
         question: str,
         top_k: Optional[int] = None,
         max_new_tokens: Optional[int] = None,
+        generation_mode: Optional[str] = None,
     ) -> ClearRAGResult:
         """Execute the full ClearRAG pipeline on a question.
 
@@ -106,27 +107,18 @@ class ClearRAGPipeline:
             4. Calculate sufficiency
             5. Make decision (answer/abstain)
             6. Conditionally generate answer
-            7. Construct ClearRAGResult with full provenance
-
-        Args:
-            question: User question string.
-            top_k: Number of evidence chunks to retrieve.
-            max_new_tokens: Maximum generation tokens (if generation occurs).
-
-        Returns:
-            ClearRAGResult with full provenance and audit trail.
+            7. Attribute generated answer claims to evidence
+            8. Construct ClearRAGResult with full provenance
         """
         k = top_k if top_k is not None else self.default_top_k
+        mode = generation_mode or self.generation_mode
         total_start = time.perf_counter()
 
-        # ──────────────────────────────────────────────
-        # Step 1: Retrieve evidence (frozen retrieval layer)
-        # ──────────────────────────────────────────────
+        # Step 1: Retrieve evidence
         retrieval_start = time.perf_counter()
         raw_chunks = self.retriever.retrieve(question, top_k=k)
         retrieval_latency_ms = (time.perf_counter() - retrieval_start) * 1000.0
 
-        # Format retrieved context for provenance
         retrieved_evidence: List[Dict[str, Any]] = []
         for chunk in raw_chunks:
             retrieved_evidence.append({
@@ -139,46 +131,33 @@ class ClearRAGPipeline:
                 "is_supporting_fact": chunk.get("is_supporting_fact", False),
             })
 
-        # ──────────────────────────────────────────────
-        # Step 2–4: Verification pipeline (frozen verification layer)
-        # ──────────────────────────────────────────────
+        # Step 2-4: Verification & Sufficiency
         verification_start = time.perf_counter()
-
-        # 2. Extract claims
         claims = self.claim_extractor.extract_claims(question)
-
-        # 3. Verify each claim against evidence
         claim_results = [
             self.evidence_verifier.verify_claim(claim, raw_chunks)
             for claim in claims
         ]
-
-        # 4. Calculate overall sufficiency
         verification_result = self.sufficiency_engine.evaluate_sufficiency(
             question=question,
             claims=claims,
             claim_results=claim_results,
             retrieved_evidence=raw_chunks,
         )
-
         verification_latency_ms = (time.perf_counter() - verification_start) * 1000.0
 
-        # ──────────────────────────────────────────────
-        # Step 5: ClearRAG Decision
-        # ──────────────────────────────────────────────
+        # Step 5: Decision
         decision = self.decision_engine.decide(verification_result.overall_status)
-
-        # Collect supporting and conflicting evidence for provenance
         supporting_evidence = self._collect_supporting_evidence(claim_results, retrieved_evidence)
         conflicting_evidence = self._collect_conflicting_evidence(claim_results, retrieved_evidence)
 
-        # ──────────────────────────────────────────────
-        # Step 6: Conditional generation
-        # ──────────────────────────────────────────────
+        # Step 6: Conditional Generation
         answer_text = ""
         generation_latency_ms = 0.0
         abstention_reason = ""
         caveat_text = ""
+        attributions: List[Dict[str, Any]] = []
+        grounding_metrics: Dict[str, float] = {}
 
         if self.decision_engine.permits_generation(decision):
             try:
@@ -187,18 +166,32 @@ class ClearRAGPipeline:
                     decision=decision,
                     retrieved_evidence=retrieved_evidence,
                     supporting_evidence=supporting_evidence,
+                    claims=claims,
+                    claim_results=claim_results,
                     max_new_tokens=max_new_tokens,
+                    mode=mode,
                 )
+                # Step 7: Attribution Analysis
+                if answer_text:
+                    attr_objs = self.attribution_engine.attribute_answer(
+                        answer_text=answer_text,
+                        evidence_chunks=supporting_evidence or retrieved_evidence,
+                        verified_claims=[c.to_dict() for c in claims],
+                    )
+                    attributions = [a.to_dict() for a in attr_objs]
+                    grounding_metrics = compute_grounding_metrics(
+                        attributions=attr_objs,
+                        evidence_chunks=supporting_evidence or retrieved_evidence,
+                        prediction_text=answer_text,
+                    )
             except Exception as e:
                 logger.error(f"Generation failed: {e}")
-                # Generation failure does not corrupt verification result
                 answer_text = (
                     "An error occurred during answer generation. "
                     "The evidence verification completed successfully."
                 )
                 generation_latency_ms = 0.0
         else:
-            # ABSTAIN or CONFLICT_ABSTENTION: deterministic response, no LLM call
             answer_text = self.decision_engine.get_abstention_response(decision)
             abstention_reason = self.decision_engine.get_abstention_reason(
                 decision, verification_result.explanation
@@ -206,9 +199,7 @@ class ClearRAGPipeline:
 
         total_latency_ms = (time.perf_counter() - total_start) * 1000.0
 
-        # ──────────────────────────────────────────────
-        # Step 7: Construct ClearRAGResult
-        # ──────────────────────────────────────────────
+        # Step 8: Return structured result
         return ClearRAGResult(
             question=question,
             answer=answer_text,
@@ -222,12 +213,15 @@ class ClearRAGPipeline:
             explanation=verification_result.explanation,
             abstention_reason=abstention_reason,
             caveat_text=caveat_text,
+            attributions=attributions,
+            grounding_metrics=grounding_metrics,
             retrieval_latency_ms=round(retrieval_latency_ms, 2),
             verification_latency_ms=round(verification_latency_ms, 2),
             generation_latency_ms=round(generation_latency_ms, 2),
             total_latency_ms=round(total_latency_ms, 2),
             metadata={
                 "top_k": k,
+                "generation_mode": mode,
                 "model_name": self.generator.model_name,
                 "embedding_model": getattr(
                     self.retriever.embedder, "model_name", "BAAI/bge-small-en-v1.5"
@@ -242,46 +236,50 @@ class ClearRAGPipeline:
         decision: ClearRAGDecision,
         retrieved_evidence: List[Dict[str, Any]],
         supporting_evidence: List[Dict[str, Any]],
+        claims: Optional[list] = None,
+        claim_results: Optional[list] = None,
         max_new_tokens: Optional[int] = None,
+        mode: str = "standard",
     ) -> tuple:
-        """Generate answer using the LLM, with decision-appropriate prompting.
-
-        Args:
-            question: The user question.
-            decision: The ClearRAG decision.
-            retrieved_evidence: All retrieved evidence chunks.
-            supporting_evidence: Only the verified supporting evidence.
-            max_new_tokens: Max generation tokens.
-
-        Returns:
-            Tuple of (answer_text, generation_latency_ms, caveat_text).
-        """
+        """Generate answer with decision-appropriate and mode-appropriate prompting."""
         caveat_text = ""
 
         if decision == ClearRAGDecision.ANSWER:
-            # ANSWER: Use supporting evidence preferentially; fall back to all evidence
             context_chunks = supporting_evidence if supporting_evidence else retrieved_evidence
-            system_prompt = ANSWER_SYSTEM_PROMPT
+            if mode == "grounded":
+                messages = self.grounded_builder.build_messages(
+                    question=question,
+                    evidence_chunks=context_chunks,
+                    verified_claims=[c.to_dict() for c in claims] if claims else None,
+                )
+            else:
+                builder = PromptBuilder(system_prompt=ANSWER_SYSTEM_PROMPT)
+                messages = builder.build_messages(question, context_chunks)
+
         elif decision == ClearRAGDecision.ANSWER_WITH_CAVEAT:
-            # ANSWER_WITH_CAVEAT: Use all evidence with caveat-aware prompt
             context_chunks = retrieved_evidence
-            system_prompt = CAVEAT_SYSTEM_PROMPT
             caveat_text = self.decision_engine.caveat_prefix
+
+            if mode == "grounded":
+                supported_texts = [cr.claim.text for cr in (claim_results or []) if cr.status == VerificationStatus.SUPPORTED]
+                unsupported_texts = [cr.claim.text for cr in (claim_results or []) if cr.status != VerificationStatus.SUPPORTED]
+                messages = self.caveat_builder.build_messages(
+                    question=question,
+                    evidence_chunks=context_chunks,
+                    supported_claims=supported_texts,
+                    unsupported_claims=unsupported_texts,
+                )
+            else:
+                builder = PromptBuilder(system_prompt=CAVEAT_SYSTEM_PROMPT)
+                messages = builder.build_messages(question, context_chunks)
         else:
-            # Should not reach here if permits_generation is checked
             return "", 0.0, ""
 
-        # Build prompt using the existing PromptBuilder
-        builder = PromptBuilder(system_prompt=system_prompt)
-        messages = builder.build_messages(question, context_chunks)
-
-        # Generate
         answer_text, gen_latency_ms = self.generator.generate_from_messages(
             messages, max_new_tokens=max_new_tokens
         )
 
-        # Prepend caveat for ANSWER_WITH_CAVEAT
-        if caveat_text and answer_text:
+        if caveat_text and answer_text and mode != "grounded":
             answer_text = f"{caveat_text}{answer_text}"
 
         return answer_text, gen_latency_ms, caveat_text
@@ -291,7 +289,7 @@ class ClearRAGPipeline:
         claim_results: list,
         retrieved_evidence: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """Collect evidence chunks that were identified as supporting claims."""
+        """Collect evidence chunks identified as supporting claims."""
         supporting_ids = set()
         for cr in claim_results:
             if cr.status == VerificationStatus.SUPPORTED:
