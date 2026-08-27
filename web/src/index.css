@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: #07080a;
+    --fg-base: #f3f4f6;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--fg-base);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
+  }
+}
+
+/* Custom fine scientific scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090a0d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e222a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2d333f;
+}
+
+/* Scientific grid background helper */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+.bg-radial-gradient {
+  background: radial-gradient(circle at 50% 30%, rgba(0, 210, 180, 0.04) 0%, transparent 70%);
+}
+
+.scientific-border {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scientific-border-accent {
+  border: 1px solid rgba(0, 210, 180, 0.25);
+}
+
+/* Text glow subtle */
+.text-glow {
+  text-shadow: 0 0 20px rgba(0, 210, 180, 0.25);
+}
