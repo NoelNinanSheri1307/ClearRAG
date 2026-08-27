@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator } from 'lucide-react';
+import { Calculator, Play } from 'lucide-react';
 import { FormulasModal } from './FormulasModal';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onNavigateToDemo?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onNavigateToDemo }) => {
   const [scrolled, setScrolled] = useState(false);
   const [isFormulasOpen, setIsFormulasOpen] = useState(false);
 
@@ -56,8 +60,8 @@ export const Navbar: React.FC = () => {
             ))}
           </nav>
 
-          {/* Formulas Action Button */}
-          <div className="flex items-center gap-3">
+          {/* Actions: Formulas + Demonstration */}
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsFormulasOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-100 border border-border hover:border-accent-teal/40 text-xs font-mono text-foreground-muted hover:text-accent-teal transition-colors"
@@ -66,6 +70,16 @@ export const Navbar: React.FC = () => {
               <Calculator className="w-3.5 h-3.5" />
               <span>Formulas</span>
             </button>
+
+            {onNavigateToDemo && (
+              <button
+                onClick={onNavigateToDemo}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-teal text-background font-mono text-xs font-semibold hover:bg-accent-teal/90 transition-colors shadow-sm"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>Interactive Demo</span>
+              </button>
+            )}
           </div>
         </div>
       </header>

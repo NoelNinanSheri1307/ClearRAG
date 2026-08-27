@@ -19,12 +19,16 @@ import { StatisticalValidationSection } from './sections/StatisticalValidationSe
 import { MetricDictionarySection } from './sections/MetricDictionarySection';
 import { SynthesisSection } from './sections/SynthesisSection';
 
-export const LandingPage: React.FC = () => {
+interface LandingPageProps {
+  onNavigateToDemo?: () => void;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToDemo }) => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-accent-teal/20 selection:text-accent-teal">
-      <Navbar />
+      <Navbar onNavigateToDemo={onNavigateToDemo} />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection onNavigateToDemo={onNavigateToDemo} />
         <ProblemSection />
         <ResearchQuestionSection />
         <BenchmarkSection />

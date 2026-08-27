@@ -73,6 +73,9 @@ checkpoints/
 *.gguf
 
 # Dataset files & search indices
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/hotpotqa/.gitkeep
 data/corpus/*
 !data/corpus/.gitkeep
 data/processed/*
