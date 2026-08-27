@@ -1,0 +1,69 @@
+# ClearRAG Decision + Abstention Layer Configuration
+# ===================================================
+#
+# This configuration controls the ClearRAG decision engine behavior,
+# including the mapping from evidence sufficiency to system decisions,
+# abstention wording, caveat behavior, and generation settings.
+
+# Decision Policy
+# Maps SufficiencyStatus -> ClearRAGDecision
+decision_policy:
+  FULLY_SUPPORTED: ANSWER
+  PARTIALLY_SUPPORTED: ANSWER_WITH_CAVEAT
+  UNSUPPORTED: ABSTAIN
+  CONFLICTING: CONFLICT_ABSTENTION
+
+# Generation Settings
+generation:
+  # Maximum new tokens for LLM generation when permitted
+  max_new_tokens: 128
+  # Temperature for generation (0.0 = greedy/deterministic)
+  temperature: 0.0
+  # Whether to use sampling
+  do_sample: false
+  # Top-K evidence chunks to retrieve
+  top_k: 5
+
+# Abstention Wording
+abstention_responses:
+  ABSTAIN: >
+    I cannot provide a reliable answer to this question.
+    The retrieved evidence does not contain sufficient information
+    to support a factual response.
+  CONFLICT_ABSTENTION: >
+    I cannot provide a reliable answer to this question.
+    The retrieved evidence contains conflicting information,
+    making it impossible to determine a trustworthy response.
+
+# Caveat Behavior
+caveat:
+  # Prefix prepended to answers when decision is ANSWER_WITH_CAVEAT
+  prefix: >
+    Note: The following answer is based on incomplete evidence.
+    Some aspects of the question could not be fully verified.
+
+# Provenance Settings
+provenance:
+  # Include full evidence text in results
+  include_evidence_text: true
+  # Include claim-level detail in results
+  include_claim_detail: true
+  # Include latency breakdown in results
+  include_latency: true
+
+# Model Configuration (references existing frozen models)
+models:
+  # LLM for generation (frozen)
+  generator: "Qwen/Qwen2.5-1.5B-Instruct"
+  # Embedding model (frozen)
+  embedder: "BAAI/bge-small-en-v1.5"
+
+# Index Paths (frozen)
+index:
+  faiss_path: "data/processed/faiss_index.bin"
+  metadata_path: "data/processed/index_metadata.json"
+
+# Benchmark Evaluation
+evaluation:
+  benchmark_path: "data/evaluation/clearrag_eval.json"
+  output_path: "results/clearrag_evaluation.json"
