@@ -91,6 +91,14 @@ class EvidenceVerifier:
                 reason=f"Retrieved evidence lacks required predicate support for '{claim.predicate}'.",
             )
 
+    def verify_claims(
+        self,
+        claims: List[Claim],
+        evidence_chunks: List[Dict[str, Any]],
+    ) -> List[ClaimVerificationResult]:
+        """Verify multiple extracted claims against retrieved evidence chunks."""
+        return [self.verify_claim(c, evidence_chunks) for c in claims]
+
     def _evaluate_predicate_support(
         self,
         claim: Claim,

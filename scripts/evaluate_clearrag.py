@@ -52,6 +52,9 @@ def main():
     parser.add_argument("--eval_path", type=str, default="data/evaluation/clearrag_eval.json")
     parser.add_argument("--output_path", type=str, default="results/clearrag_evaluation.json")
     parser.add_argument("--top_k", type=int, default=5)
+    parser.add_argument("--retrieval_mode", type=str, default="dense", choices=["dense", "bm25", "hybrid", "hybrid_rerank"])
+    parser.add_argument("--verifier_mode", type=str, default="baseline", choices=["baseline", "improved"])
+    parser.add_argument("--bm25_path", type=str, default="data/processed/bm25_index.pkl")
     parser.add_argument("--index_path", type=str, default="data/processed/faiss_index.bin")
     parser.add_argument("--metadata_path", type=str, default="data/processed/index_metadata.json")
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-1.5B-Instruct")
@@ -71,10 +74,23 @@ def main():
     logger.info(f"Loaded {len(benchmark)} benchmark instances.")
 
     # Initialize components
-    logger.info("Loading retriever...")
+    logger.info(f"Loading retriever (mode={args.retrieval_mode}, top_k={args.top_k})...")
+    bm25_p = Path(args.bm25_path) if args.bm25_path else None
     retriever = Retriever.from_saved_index(
-        Path(args.index_path), Path(args.metadata_path), default_top_k=args.top_k
+        Path(args.index_path),
+        Path(args.metadata_path),
+        bm25_path=bm25_p,
+        default_top_k=args.top_k,
+        mode=args.retrieval_mode,
     )
+
+    logger.info(f"Loading verifier (mode={args.verifier_mode})...")
+    if args.verifier_mode == "improved":
+        from src.verification.improved_verifier import ImprovedEvidenceVerifier
+        evidence_verifier = ImprovedEvidenceVerifier(embedder=retriever.embedder)
+    else:
+        from src.verification.evidence_verifier import EvidenceVerifier
+        evidence_verifier = EvidenceVerifier()
 
     logger.info(f"Loading LLM generator ({args.model})...")
     generator = LLMGenerator(model_name=args.model)
@@ -84,6 +100,7 @@ def main():
         retriever=retriever,
         generator=generator,
         decision_engine=decision_engine,
+        evidence_verifier=evidence_verifier,
         default_top_k=args.top_k,
     )
 

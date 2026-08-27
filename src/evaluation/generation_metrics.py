@@ -83,6 +83,12 @@ def compute_contains_ground_truth(prediction: str, ground_truth: str) -> float:
     return 1.0 if norm_gt in norm_pred else 0.0
 
 
+# Aliases for interface consistency
+exact_match_score = compute_exact_match
+token_f1_score = compute_token_f1
+contains_ground_truth = compute_contains_ground_truth
+
+
 def compute_generation_metrics(
     prediction: str,
     ground_truth: str,
