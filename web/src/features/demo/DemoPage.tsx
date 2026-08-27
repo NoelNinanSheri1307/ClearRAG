@@ -212,7 +212,7 @@ export const DemoPage: React.FC<DemoPageProps> = ({ onBackToResearch }) => {
           {/* Bottom Return CTA */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-2xl bg-surface-200/40 border border-border">
             <div className="text-xs font-sans text-foreground-muted">
-              Ready to explore the full mathematical proof, ablation studies, and confidence intervals?
+              Explore the full mathematical proof, ablation studies, and confidence intervals.
             </div>
             <button
               onClick={onBackToResearch}
