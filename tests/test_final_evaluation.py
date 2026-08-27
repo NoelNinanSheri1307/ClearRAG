@@ -114,3 +114,30 @@ class TestSafetyUtilityEvaluation:
         cases = SafetyUtilityEvaluator.select_case_studies(sample_paired_records)
         assert len(cases) >= 1
         assert "q2" in [c["id"] for c in cases]
+
+    def test_audit_accounting_invariants(self):
+        import json
+        from pathlib import Path
+        canon_path = Path("results/final_canonical_evaluation.json")
+        if canon_path.exists():
+            with open(canon_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            assert data["metadata"]["total_instances"] == 1250
+            sys0 = data["systems"]["system_0_standard_rag"]
+            sys4 = data["systems"]["system_4_final_clearrag"]
+            assert sys0["total_answers_generated"] == 1250
+            assert sys4["total_answers_generated"] + sys4["llm_calls_avoided"] == 1250
+
+    def test_coverage_risk_quality_invariants(self):
+        import json
+        from pathlib import Path
+        crq_path = Path("results/coverage_risk_quality.json")
+        if crq_path.exists():
+            with open(crq_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ops = data["operating_points"]
+            assert len(ops) >= 5
+            # Invariant: lowest coverage point has highest compute saved
+            assert ops[0]["compute_saved_percentage"] > ops[-1]["compute_saved_percentage"]
+            # Invariant: highest coverage point has higher unsupported risk than lowest
+            assert ops[-1]["unsupported_claim_rate"] > ops[0]["unsupported_claim_rate"]
