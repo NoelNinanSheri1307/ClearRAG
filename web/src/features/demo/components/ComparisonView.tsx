@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, ShieldCheck, ZapOff, Clock, ShieldAlert, FileText, CornerDownRight } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, ShieldCheck, ZapOff, Clock, ShieldAlert, FileText, CornerDownRight, HelpCircle } from 'lucide-react';
 import { DemoQuestionInstance } from '@/data/demo_scenarios';
 
 interface ComparisonViewProps {
@@ -50,7 +50,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
           Step 3 • Side-by-Side Response Policy Outputs
         </span>
         <span className="text-xs font-mono text-accent-teal">
-          Gold Target: "{question.goldAnswer}"
+          Gold Reference: "{question.goldAnswer}"
         </span>
       </div>
 
@@ -74,7 +74,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             </div>
 
             {/* Response Box */}
-            <div className="p-5 rounded-xl bg-surface-200/70 border border-border/70 mb-6">
+            <div className="p-5 rounded-xl bg-surface-200/70 border border-border/70 mb-4">
               <span className="text-[10px] font-mono uppercase text-foreground-subtle block mb-2">
                 Generated Output
               </span>
@@ -82,6 +82,19 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 {standardRAG.answer}
               </p>
             </div>
+
+            {/* Educational Callout on Parametric Memory Guessing */}
+            {standardRAG.evidenceSupport !== 'SUPPORTED' && (
+              <div className="p-3.5 rounded-xl bg-accent-amber/5 border border-accent-amber/30 text-xs font-sans text-foreground-muted leading-relaxed mb-6">
+                <div className="flex items-center gap-1.5 text-accent-amber font-mono text-[11px] uppercase font-semibold mb-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Parametric Memory vs Context Grounding</span>
+                </div>
+                <span>
+                  Standard RAG answered by recalling facts from its internet pre-training weights rather than the provided documents. In private enterprise/medical RAG, this ungrounded behavior causes critical hallucinations. ClearRAG stays strictly faithful to the provided context.
+                </span>
+              </div>
+            )}
 
             {/* Evidence & Grounding Diagnostics */}
             <div className="space-y-3 font-mono text-xs mb-6">
@@ -145,7 +158,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             </div>
 
             {/* Response Box */}
-            <div className="p-5 rounded-xl bg-surface-200/70 border border-border/70 mb-6">
+            <div className="p-5 rounded-xl bg-surface-200/70 border border-border/70 mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-mono uppercase text-accent-teal block">
                   {isAbstain ? 'Safe Abstention Decision' : 'Attributed Response'}
