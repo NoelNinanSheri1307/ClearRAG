@@ -1,8 +1,8 @@
-"""ClearRAG Official Academic Architecture Schematic Generator.
+"""ClearRAG Formal Academic Architecture Schematic Generator (Black & White).
 
-Generates a publication-grade (300 DPI), clean, formal academic architecture diagram
-for IEEE/ACM/arXiv research papers, patent specifications, and thesis viva defenses.
-Features an official clean white background, crisp vector typography, and detailed technical descriptions.
+Generates a formal black-and-white, top-to-bottom schematic diagram in Times New Roman
+with large, highly legible typography and zero clipping, designed specifically for IEEE/ACM publication standards,
+patent line-art specifications, and academic thesis submissions.
 """
 
 from pathlib import Path
@@ -11,6 +11,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+# Set global font to Times New Roman / Serif
+matplotlib.rcParams["font.family"] = "serif"
+matplotlib.rcParams["font.serif"] = ["Times New Roman", "DejaVu Serif", "Liberation Serif", "serif"]
+matplotlib.rcParams["mathtext.fontset"] = "stix"
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = REPO_ROOT / "results" / "plots"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -18,328 +23,207 @@ PNG_PATH = OUTPUT_DIR / "clearrag_architecture_schematic.png"
 PDF_PATH = OUTPUT_DIR / "clearrag_architecture_schematic.pdf"
 
 
-def draw_official_architecture():
-    # Academic publication canvas (Widescreen 16:9, 300 DPI)
-    fig, ax = plt.subplots(figsize=(22, 12), dpi=300)
+def draw_bw_top_to_bottom_architecture():
+    # Large-format vertical portrait canvas (15 x 22.5 in) with generous margin bounds
+    fig, ax = plt.subplots(figsize=(15, 22.5), dpi=300)
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, 180)
     ax.axis("off")
 
-    # Clean Academic White Palette
+    # Strict Monochrome Palette
     bg_color = "#FFFFFF"
+    box_bg = "#FFFFFF"
+    box_edge = "#000000"
+    text_color = "#000000"
+
     fig.patch.set_facecolor(bg_color)
     ax.set_facecolor(bg_color)
 
-    # Color Tokens (Formal Academic & Publication Grade)
-    color_navy = "#0F172A"       # Primary text & headers
-    color_border = "#CBD5E1"     # Outer card borders
-    color_blue_border = "#2563EB"# Section A: Retrieval (Cobalt Blue)
-    color_blue_bg = "#F8FAFC"
-    color_teal_border = "#0D9488"# Section B: Verification (Teal)
-    color_teal_bg = "#F0FDFA"
-    color_amber_border = "#D97706"# Section C: Decision Engine (Amber)
-    color_amber_bg = "#FFFBEB"
-    color_red_border = "#DC2626"  # Section D: Conflict (Crimson)
-    color_red_bg = "#FEF2F2"
-    color_green_border = "#16A34A"# Section E/F: Grounded Synthesis (Forest Green)
-    color_green_bg = "#F0FDF4"
-    
-    text_dark = "#0F172A"
-    text_muted = "#475569"
-    text_subtle = "#64748B"
-
     # -------------------------------------------------------------
-    # 1. MAIN TITLE & SUBTITLE BANNER
+    # HEADER TITLE
     # -------------------------------------------------------------
     ax.text(
-        50, 97.2,
-        "Figure 1: Complete System Architecture of ClearRAG (Evidence-Aware Selective RAG)",
-        ha="center", va="center", fontsize=15, fontweight="bold", color=text_dark, fontfamily="sans-serif"
+        50, 175.0,
+        "Figure 1: Architecture of the ClearRAG System",
+        ha="center", va="center", fontsize=18, fontweight="bold", color=text_color
     )
     ax.text(
-        50, 95.0,
-        "A Deterministic 6-Stage Pipeline with Relational Verification, Conflict Detection, 4-Way Decision Gating, and Claim Attribution",
-        ha="center", va="center", fontsize=10, color=text_muted, fontfamily="sans-serif"
+        50, 171.8,
+        "Top-to-bottom procedural workflow for evidence-aware selective generation.",
+        ha="center", va="center", fontsize=13, style="italic", color=text_color
     )
 
-    # Helper function for drawing container modules
-    def draw_module_box(x, y, w, h, title, subtitle, header_bg, border_col):
-        # Outer card
-        card = patches.FancyBboxPatch(
+    # Helper function for primary rectangular blocks
+    def draw_box(x, y, w, h, title="", lines=None, lw=1.4, ls="-", fill=box_bg, title_size=12.5, line_size=10.8, line_spacing=2.6):
+        box = patches.Rectangle(
             (x, y), w, h,
-            boxstyle="round,pad=0.4,rounding_size=0.8",
-            facecolor="#FFFFFF", edgecolor=border_col, linewidth=1.4,
-            zorder=2
+            facecolor=fill, edgecolor=box_edge, linewidth=lw, linestyle=ls, zorder=2
         )
-        ax.add_patch(card)
-        # Header banner
-        header = patches.FancyBboxPatch(
-            (x, y + h - 3.8), w, 3.8,
-            boxstyle="round,pad=0.0,rounding_size=0.0",
-            facecolor=header_bg, edgecolor=border_col, linewidth=1.0,
-            zorder=3
-        )
-        ax.add_patch(header)
-        ax.text(x + w / 2, y + h - 1.6, title, ha="center", va="center", fontsize=9.5, fontweight="bold", color=text_dark, zorder=4)
-        ax.text(x + w / 2, y + h - 3.0, subtitle, ha="center", va="center", fontsize=7.5, color=text_muted, zorder=4)
-        return card
+        ax.add_patch(box)
+        if title:
+            ax.text(
+                x + w / 2, y + h - 2.8, title,
+                ha="center", va="center", fontsize=title_size, fontweight="bold", color=text_color, zorder=3
+            )
+        if lines:
+            start_y = y + h - 5.8
+            for i, line in enumerate(lines):
+                ax.text(
+                    x + 2.2, start_y - (i * line_spacing), f"• {line}",
+                    ha="left", va="center", fontsize=line_size, color=text_color, zorder=3
+                )
+        return box
 
-    # Helper function for drawing inner functional units
-    def draw_unit(x, y, w, h, title, bullet_points, fill="#F8FAFC", border="#E2E8F0", title_col=text_dark):
-        unit = patches.FancyBboxPatch(
-            (x, y), w, h,
-            boxstyle="round,pad=0.2,rounding_size=0.5",
-            facecolor=fill, edgecolor=border, linewidth=1.0, zorder=3
+    # Helper function for decision diamond
+    def draw_diamond(cx, cy, w, h, text=""):
+        diamond = patches.Polygon(
+            [(cx, cy + h / 2), (cx + w / 2, cy), (cx, cy - h / 2), (cx - w / 2, cy)],
+            closed=True, facecolor=box_bg, edgecolor=box_edge, linewidth=1.4, zorder=2
         )
-        ax.add_patch(unit)
-        ax.text(x + 0.8, y + h - 1.2, title, ha="left", va="center", fontsize=8.2, fontweight="bold", color=title_col, zorder=4)
-        
-        # Bullet lines
-        curr_y = y + h - 2.5
-        for bp in bullet_points:
-            ax.text(x + 0.8, curr_y, f"• {bp}", ha="left", va="center", fontsize=7.2, color=text_muted, zorder=4)
-            curr_y -= 1.2
+        ax.add_patch(diamond)
+        if text:
+            ax.text(cx, cy, text, ha="center", va="center", fontsize=11.5, fontweight="bold", color=text_color, zorder=3)
 
-    # Helper function for clean academic connecting arrows
-    def draw_conn(x1, y1, x2, y2, label="", col="#334155", ls="-", lw=1.2, label_y_offset=1.0):
+    # Helper for directional connecting arrows
+    def draw_arrow(x1, y1, x2, y2, label="", ls="-", label_offset=(0, 0), ha="center", label_size=10.2):
         ax.annotate(
             "", xy=(x2, y2), xytext=(x1, y1),
-            arrowprops=dict(arrowstyle="-|>,head_width=0.3,head_length=0.45", color=col, lw=lw, ls=ls),
-            zorder=6
+            arrowprops=dict(arrowstyle="-|>,head_width=0.32,head_length=0.5", color=box_edge, lw=1.3, linestyle=ls),
+            zorder=4
         )
         if label:
-            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-            ax.text(mx, my + label_y_offset, label, ha="center", va="center", fontsize=7.0, fontweight="bold", color=col, zorder=7,
-                    bbox=dict(boxstyle="square,pad=0.15", fc="#FFFFFF", ec="none", alpha=0.85))
+            mx, my = (x1 + x2) / 2 + label_offset[0], (y1 + y2) / 2 + label_offset[1]
+            ax.text(
+                mx, my, label,
+                ha=ha, va="center", fontsize=label_size, color=text_color, zorder=5,
+                bbox=dict(boxstyle="square,pad=0.2", fc=bg_color, ec="none")
+            )
 
     # =========================================================================
-    # STEP 0: INPUT QUERY
+    # 0. INPUT
     # =========================================================================
-    draw_module_box(1.5, 63, 11, 29, "USER INPUT", "Natural Language Query q", "#F1F5F9", "#64748B")
-    draw_unit(2.3, 79.5, 9.4, 8.5, "Input Question", [
-        "Multi-Hop HotpotQA Query",
-        "Entity & Implicit Relation",
-        "e.g., 'Who won 2026 World Cup?'"
-    ], fill="#FFFFFF", border="#CBD5E1")
-    draw_unit(2.3, 65.5, 9.4, 12.5, "Input Characteristics", [
-        "Direct Factual Inquiries",
-        "Comparative Questions",
-        "Multi-Entity Bridge Tasks",
-        "Temporal Constraints (Years)",
-        "Potentially Unanswerable"
-    ], fill="#FFFFFF", border="#CBD5E1")
-
-    draw_conn(12.5, 77.5, 15.5, 77.5, label="Question q", col="#2563EB")
+    draw_box(18, 156.0, 64, 11.5, title="1. USER QUERY INPUT", lines=[
+        "Input Question q (Natural Language Multi-Hop Factual Inquiry)",
+        "Contains Implicit Relations, Multi-Entity Comparisons, and Temporal Constraints"
+    ], title_size=13.0, line_size=11.0, line_spacing=2.6)
 
     # =========================================================================
-    # MODULE A: HYBRID RETRIEVAL & RERANKING
+    # A. HYBRID RETRIEVAL & RERANKING
     # =========================================================================
-    draw_module_box(15.5, 52, 20.5, 40, "A. HYBRID RETRIEVAL", "Dual Sparse-Dense & RRF Fusion", "#EFF6FF", color_blue_border)
-    draw_unit(16.5, 78.5, 18.5, 9.5, "1. Dense Vector Search (FAISS)", [
+    # Sub-box 1: Dense Retrieval
+    draw_box(6, 134.0, 42, 16.0, title="A1. Dense Vector Search", lines=[
         "Model: BAAI/bge-small-en-v1.5 (384-dim)",
-        "Index: IndexFlatIP (Normalized L2)",
-        "Corpus: 269,556 Wikipedia Chunks",
-        "Dense Retrieval Depth: k_dense = 10"
-    ], fill="#FFFFFF", border=color_blue_border)
-    
-    draw_unit(16.5, 67.5, 18.5, 9.5, "2. Lexical Search (BM25)", [
-        "Algorithm: Okapi BM25 (k1=1.5, b=0.75)",
-        "Corpus: Exact Inverted Lexical Index",
-        "Exact Entity / Keyword Matching",
-        "Lexical Retrieval Depth: k_lexical = 10"
-    ], fill="#FFFFFF", border=color_blue_border)
+        "Index: FAISS IndexFlatIP (Normalized L2)",
+        "Retrieval Depth: k_dense = 10 passages"
+    ], title_size=12.0, line_size=10.5, line_spacing=2.6)
 
-    draw_unit(16.5, 54.0, 18.5, 12.0, "3. Reciprocal Rank Fusion & Rerank", [
-        "RRF Score: S_rrf(d) = Σ 1 / (60 + r_m(d))",
-        "Cross-Scorer: S_final = 0.70·S_dense + 0.30·S_bm25",
-        "Deduplication & Top-k Filtering",
-        "Output: Top-10 Ranked Evidence Chunks D"
-    ], fill="#FFFFFF", border=color_blue_border)
+    # Sub-box 2: Sparse Retrieval
+    draw_box(52, 134.0, 42, 16.0, title="A2. Sparse Lexical Search", lines=[
+        "Algorithm: Okapi BM25 (k1 = 1.5, b = 0.75)",
+        "Index: Inverted Term Index (269,556 chunks)",
+        "Retrieval Depth: k_lexical = 10 passages"
+    ], title_size=12.0, line_size=10.5, line_spacing=2.6)
 
-    draw_conn(36.0, 72.0, 39.0, 72.0, label="Top-10 Chunks D", col=color_teal_border)
+    # Arrows from Query to Dual Retrievers
+    draw_arrow(50, 156.0, 27, 150.0, label="")
+    draw_arrow(50, 156.0, 73, 150.0, label="")
 
-    # =========================================================================
-    # MODULE B: EVIDENCE VERIFICATION LAYER
-    # =========================================================================
-    draw_module_box(39.0, 52, 20.5, 40, "B. EVIDENCE VERIFIER", "Relational & Temporal Grounding", "#F0FDFA", color_teal_border)
-    draw_unit(40.0, 78.5, 18.5, 9.5, "1. Claim Extractor (AST / Regex)", [
-        "Decomposes q into Atomic Claims {c_i}",
-        "Detects Comparison Entities (A vs B)",
-        "Extracts Multi-Hop Capitalized NPs",
-        "Identifies Target Predicates"
-    ], fill="#FFFFFF", border=color_teal_border)
+    # Sub-box 3: Fusion & Reranking
+    draw_box(8, 112.0, 84, 16.0, title="A3. Reciprocal Rank Fusion & Cross-Scorer Reranking", lines=[
+        "Reciprocal Rank Fusion (RRF): S_RRF(d) = Σ 1 / (60 + rank_m(d))",
+        "Convex Combination Reranking: S_final(d) = 0.70 · S_dense(d) + 0.30 · S_BM25(d)",
+        "Output: Top-10 Ranked Candidate Evidence Chunks D = {p_1, p_2, ..., p_10}"
+    ], title_size=12.5, line_size=10.8, line_spacing=2.6)
 
-    draw_unit(40.0, 67.5, 18.5, 9.5, "2. Relational Predicate Verifier", [
-        "Enforces Semantic Role Matching",
-        "Classes: award_winner, founder, parent,",
-        "spouse, director, location, birth/death...",
-        "Rejects Topical Non-Entailments (e.g. bids)"
-    ], fill="#FFFFFF", border=color_teal_border)
-
-    draw_unit(40.0, 54.0, 18.5, 12.0, "3. Temporal & Semantic Audit", [
-        "Temporal Constraint: Year(q) ⊆ Year(p)",
-        "Prevents Cross-Era False Entailment",
-        "Semantic Cosine Threshold: τ_sim ≥ 0.60",
-        "Lexical Non-Stopword Overlap: ≥ 0.30",
-        "Output: Verified Status per Claim {c_i}"
-    ], fill="#FFFFFF", border=color_teal_border)
-
-    draw_conn(49.2, 52.0, 49.2, 44.0, label="Claim Verifications", col=color_teal_border, label_y_offset=-1.0)
+    draw_arrow(27, 134.0, 36, 128.0, label="")
+    draw_arrow(73, 134.0, 64, 128.0, label="")
+    draw_arrow(50, 112.0, 50, 105.0, label="Top-10 Evidence Chunks D")
 
     # =========================================================================
-    # MODULE D: CONFLICT DETECTION (PARALLEL SUB-STAGE)
+    # B. EVIDENCE VERIFICATION LAYER
     # =========================================================================
-    draw_module_box(39.0, 16, 20.5, 28, "D. CONFLICT DETECTOR", "Cross-Passage Contradiction Checking", "#FEF2F2", color_red_border)
-    draw_unit(40.0, 30.5, 18.5, 9.5, "1. Pairwise Entity Matrix", [
-        "Aligns Extracted Facts Across Passages",
-        "Shared Entity: e(p_i) == e(p_j)",
-        "Shared Attribute: attr(p_i) == attr(p_j)",
-        "Tracks: Birth/Death, Counts, Year Facts"
-    ], fill="#FFFFFF", border=color_red_border)
+    draw_box(6, 78.0, 88, 25.0, title="B. EVIDENCE VERIFICATION LAYER", lines=[
+        "B1. Claim Extraction: Decomposes question q into atomic claims {c_1, c_2, ..., c_m}",
+        "B2. Relational Predicate Verification: Validates action roles (winner, founder, author, parent, location...)",
+        "    Rejects topical false positives where context mentions entities without fulfilling requested relation",
+        "B3. Temporal Year Constraint: Enforces $\\mathrm{Year}(q) \\subseteq \\mathrm{Year}(p)$ to prevent cross-era historical mismatches",
+        "B4. Semantic Alignment: Requires Cosine Similarity ($\\tau_{sim} \\geq 0.60$) and Lexical Overlap ($\\geq 0.30$)",
+        "Output: Verified Status and Evidential Support Chain for each extracted claim"
+    ], title_size=13.0, line_size=10.6, line_spacing=2.7)
 
-    draw_unit(40.0, 18.0, 18.5, 11.0, "2. Incompatible Value Audit", [
-        "Evaluates: val(p_i) ≠ val(p_j)",
-        "Detects Conflicting Numbers & Dates",
-        "Conflict Detection Precision: 98.20%",
-        "Emits Contradiction Flag to Policy Gate"
-    ], fill="#FFFFFF", border=color_red_border)
-
-    draw_conn(59.5, 30.0, 62.5, 30.0, label="Conflict State", col=color_red_border)
+    draw_arrow(50, 78.0, 50, 71.0, label="Verified Claim Records")
 
     # =========================================================================
-    # MODULE C: SUFFICIENCY & DECISION ENGINE
+    # D. CONFLICT DETECTION & SUFFICIENCY ENGINE
     # =========================================================================
-    draw_module_box(62.5, 16, 20.0, 76, "C. DECISION ENGINE", "Deterministic 4-Way Policy Gate", "#FFFBEB", color_amber_border)
-    draw_unit(63.5, 78.5, 18.0, 9.5, "Sufficiency Evaluator", [
-        "Aggregates Status of All Claims {c_i}",
-        "SUFFICIENT: All Claims Verified",
-        "PARTIAL: ≥1 Verified & ≥1 Unverified",
-        "UNSUPPORTED: 0 Claims Verified"
-    ], fill="#FFFFFF", border=color_amber_border)
+    draw_box(6, 49.0, 88, 20.0, title="C & D. CONFLICT DETECTION & SUFFICIENCY ENGINE", lines=[
+        "D. Cross-Passage Conflict Detection: Audits pairwise entity-attribute assertions across passages",
+        "   Criterion: Entity(p_i) == Entity(p_j) and Attribute(p_i) == Attribute(p_j) and Value(p_i) != Value(p_j)",
+        "   Detects incompatible numerical statistics, population counts, construction dates, and birth/death years",
+        "C. Sufficiency Evaluation: Aggregates verified claim statuses into overall Sufficiency Status",
+        "   (Overall Status: SUFFICIENT | PARTIAL_SUFFICIENT | UNSUPPORTED | CONFLICTING)"
+    ], title_size=13.0, line_size=10.6, line_spacing=2.7)
 
-    # 4 Output Policy Routes
-    draw_unit(63.5, 65.5, 18.0, 11.0, "1. Policy: ANSWER", [
-        "Condition: Status == SUFFICIENT",
-        "Evidence: Full Verification Chain",
-        "Action: Invoke Grounded Generator",
-        "Output: Factual Answer + Citations"
-    ], fill=color_green_bg, border=color_green_border, title_col="#15803D")
-
-    draw_unit(63.5, 52.5, 18.0, 11.5, "2. Policy: ANSWER_WITH_CAVEAT", [
-        "Condition: Status == PARTIAL_SUFFICIENT",
-        "Evidence: Incomplete Bridge Relation",
-        "Action: Invoke Caveat Generator",
-        "Output: Explicit Caution on Missing Part"
-    ], fill=color_amber_bg, border=color_amber_border, title_col="#B45309")
-
-    draw_unit(63.5, 36.5, 18.0, 14.5, "3. Policy: ABSTAIN", [
-        "Condition: Status == UNSUPPORTED",
-        "Evidence: No Grounded Context Support",
-        "Action: GENERATION SKIPPED (0 Tokens)",
-        "Avoids 72.4% Unnecessary LLM Calls",
-        "Output: Safe Refusal Payload"
-    ], fill=color_red_bg, border=color_red_border, title_col="#B91C1C")
-
-    draw_unit(63.5, 18.0, 18.0, 17.0, "4. Policy: CONFLICT_ABSTENTION", [
-        "Condition: Contradiction Detected",
-        "Evidence: Mutually Exclusive Numbers/Dates",
-        "Action: GENERATION SKIPPED (0 Tokens)",
-        "Prevents Hallucinated Fact Merging",
-        "Output: Contradiction Alert Payload"
-    ], fill=color_red_bg, border=color_red_border, title_col="#B91C1C")
-
-    # Routing Arrows from Decision Engine to Generation / Output
-    draw_conn(81.5, 71.0, 85.0, 71.0, label="Verified Context", col=color_green_border)
-    draw_conn(81.5, 58.0, 85.0, 58.0, label="Qualified Context", col=color_amber_border)
-    draw_conn(81.5, 43.5, 85.0, 30.0, label="Refusal (0 Tok)", col=color_red_border, label_y_offset=-1.0)
-    draw_conn(81.5, 26.5, 85.0, 26.5, label="Refusal (0 Tok)", col=color_red_border)
+    draw_arrow(50, 49.0, 50, 42.5, label="")
 
     # =========================================================================
-    # MODULE E: GROUNDED GENERATION LAYER
+    # DECISION GATE (Diamond)
     # =========================================================================
-    draw_module_box(85.0, 48, 13.5, 44, "E. GENERATION", "Evidence-Bound LLM", "#F0FDF4", color_green_border)
-    draw_unit(86.0, 78.5, 11.5, 9.5, "Grounded Prompt", [
-        "Numbered Anchors: [1], [2]...",
-        "Strict Factual Instruction",
-        "Zero-Shot Parameter Binding",
-        "Suppresses Parametric Recall"
-    ], fill="#FFFFFF", border=color_green_border)
+    draw_diamond(50, 36.0, 38, 12.0, text="4-Way Policy Gate\n(Decision Engine)")
 
-    draw_unit(86.0, 64.0, 11.5, 13.0, "Qwen 2.5 1.5B (FP16)", [
-        "Local NVIDIA GPU Inference",
-        "Greedy Decoding (Temp = 0.0)",
-        "Max New Tokens: 384",
-        "Token Slicing Integrity Check",
-        "Clean Formatted Markdown"
-    ], fill="#FFFFFF", border=color_green_border)
+    # Output Branches from Decision Gate
+    draw_arrow(31, 36.0, 16, 36.0, label="")
+    draw_arrow(16, 36.0, 16, 25.5, label="Unsupported /\nContradiction", label_offset=(0, 3.2), ha="right")
 
-    draw_unit(86.0, 50.0, 11.5, 12.5, "Generation Latency", [
-        "Mean Latency: 730.59 ms",
-        "(vs Standard RAG 2,490 ms)",
-        "Speedup: 3.41x Acceleration",
-        "Skipped Latency: ~89.5 ms"
-    ], fill="#FFFFFF", border=color_green_border)
+    draw_arrow(50, 30.0, 50, 25.5, label="Partial Evidence\n(1/2 Claims)", label_offset=(0.8, 0), ha="left")
 
-    draw_conn(91.7, 48.0, 91.7, 42.0, label="Draft Text", col=color_green_border)
+    draw_arrow(69, 36.0, 84, 36.0, label="")
+    draw_arrow(84, 36.0, 84, 25.5, label="Fully Supported\nEvidence", label_offset=(0, 3.2), ha="left")
 
     # =========================================================================
-    # MODULE F: CLAIM-LEVEL ATTRIBUTION & OUTPUT
+    # E. GENERATION & REFUSAL PAYLOADS
     # =========================================================================
-    draw_module_box(85.0, 6, 13.5, 36, "F. ATTRIBUTION", "Provenance & Metrics", "#F8FAFC", "#475569")
-    draw_unit(86.0, 28.0, 11.5, 10.0, "Attribution Engine", [
-        "Sentence Claim Splitter",
-        "Bidirectional Semantic Match",
-        "Attribution Precision: 95.20%",
-        "Attribution Coverage: 94.50%"
-    ], fill="#FFFFFF", border="#64748B")
+    # Branch 1: Safe Abstention (Left)
+    draw_box(3, 11.5, 27, 14.0, title="3 & 4. SAFE REFUSAL", lines=[
+        "GENERATION SKIPPED",
+        "0 GPU Tokens Generated",
+        "Safe Refusal Payload",
+        "Preserves 72.4% Compute"
+    ], ls="--", title_size=11.2, line_size=9.8, line_spacing=2.3)
 
-    draw_unit(86.0, 7.5, 11.5, 19.0, "FINAL RESPONSE", [
-        "A. Grounded Answer Output",
-        "   with Clickable Citations [1], [2]",
-        "B. Caveat Qualified Answer",
-        "   with Missing-Fact Warning",
-        "C. Safe Abstention Response",
-        "   (Unsupported / Contradiction)",
-        "• Unsupported Rate: 3.20%",
-        "• 91.4% Hallucination Reduction"
-    ], fill="#F1F5F9", border="#475569", title_col="#0F172A")
+    # Branch 2: Answer with Caveat (Middle)
+    draw_box(33, 11.5, 34, 14.0, title="2. CAVEAT GENERATION", lines=[
+        "Qwen 2.5 1.5B (FP16, Temp=0.0)",
+        "Caveat Prompt Builder",
+        "Emits Qualified Factual Answer",
+        "Explicit Warning on Missing Part"
+    ], title_size=11.2, line_size=9.8, line_spacing=2.3)
+
+    # Branch 3: Grounded Answer Generation (Right)
+    draw_box(70, 11.5, 27, 14.0, title="1. GROUNDED GEN", lines=[
+        "Qwen 2.5 1.5B (FP16)",
+        "Grounded Context [1], [2]",
+        "Greedy (Temp = 0.0)",
+        "Max New Tokens: 384"
+    ], title_size=11.2, line_size=9.8, line_spacing=2.3)
+
+    # Arrows to Final Output & Attribution
+    draw_arrow(50, 11.5, 50, 8.5, label="")
+    draw_arrow(83.5, 11.5, 68, 8.5, label="")
 
     # =========================================================================
-    # STATISTICAL VALIDATION SUMMARY BAR (ACADEMIC FOOTNOTE)
+    # F. CLAIM-LEVEL ATTRIBUTION & FINAL DELIVERABLE
     # =========================================================================
-    footnote_box = patches.FancyBboxPatch(
-        (1.5, 2.0), 81.0, 12.0,
-        boxstyle="round,pad=0.3,rounding_size=0.6",
-        facecolor="#F8FAFC", edgecolor="#CBD5E1", linewidth=1.0, zorder=2
-    )
-    ax.add_patch(footnote_box)
+    draw_box(12, 1.5, 76, 7.0, title="F. CLAIM-LEVEL ATTRIBUTION & FINAL OUTPUT", lines=[
+        "Propositional Sentence Decomposition & Bidirectional Semantic Alignment against Source Chunks",
+        "Grounding Precision: 95.20% | Attribution Coverage: 94.50% | Verified Citations [1], [2]"
+    ], title_size=11.8, line_size=10.0, line_spacing=2.1)
 
-    ax.text(
-        3.0, 11.8,
-        "EMPIRICAL RESEARCH VALIDATION (N = 1,250 Benchmark Queries, HotpotQA Multi-Hop Corpus, NVIDIA GPU Inference)",
-        fontsize=8.5, fontweight="bold", color=text_dark, zorder=3
-    )
-
-    col1_text = (
-        "• Hallucination Reduction: 91.4% Relative Reduction (37.08% -> 3.20% Unsupported Claims)\n"
-        "• Safe Abstention on Refusal Subset: 71.60% (358/500 correctly refused vs Standard RAG 0.00%)\n"
-        "• GPU Compute Optimization: 72.40% Reduction in LLM Invocations via Verifier-First Exiting"
-    )
-    ax.text(3.0, 6.8, col1_text, fontsize=7.6, color=text_muted, zorder=3, linespacing=1.4)
-
-    col2_text = (
-        "• McNemar's Paired Test: p = 1.01 x 10^-14 (Statistically Significant Superiority, Odds Ratio = 1.93)\n"
-        "• Attribution Precision: 95.20% Grounded Claim Fidelity (Coverage: 94.50% vs Standard RAG 0.00%)\n"
-        "• Pipeline Latency: 730.59 ms Mean Latency (70.7% Mean Acceleration vs Standard RAG 2,490.00 ms)"
-    )
-    ax.text(44.0, 6.8, col2_text, fontsize=7.6, color=text_muted, zorder=3, linespacing=1.4)
-
-    plt.tight_layout()
     plt.savefig(PNG_PATH, dpi=300, bbox_inches="tight", facecolor=bg_color, edgecolor="none")
     plt.savefig(PDF_PATH, dpi=300, bbox_inches="tight", facecolor=bg_color, edgecolor="none")
     plt.close()
-    print(f"[SUCCESS] Rendered Official Academic Architecture Diagram:\n  - PNG: {PNG_PATH}\n  - PDF: {PDF_PATH}")
+    print(f"[SUCCESS] Rendered Clean B&W Academic Architecture Diagram (Large Font, Full Bounds):\n  - PNG: {PNG_PATH}\n  - PDF: {PDF_PATH}")
 
 
 if __name__ == "__main__":
-    draw_official_architecture()
+    draw_bw_top_to_bottom_architecture()
