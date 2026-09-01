@@ -24,6 +24,12 @@ wheels/
 .installed.cfg
 *.egg
 
+# Local-only GPU execution environment (Web RAG Run)
+Web RAG Run/
+Web RAG Run/**
+Web\ RAG\ Run/
+Web\ RAG\ Run/**
+
 # Virtual environments
 .env
 .venv/

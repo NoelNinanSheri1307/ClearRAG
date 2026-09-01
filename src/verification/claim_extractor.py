@@ -109,7 +109,17 @@ class RuleBasedClaimExtractor(BaseClaimExtractor):
     def _detect_predicate(self, question: str) -> str:
         """Identify the requested attribute/predicate from question text."""
         q_lower = question.lower()
-        if re.search(r"\b(born|birth|b\.)\b", q_lower):
+        if re.search(r"\b(won|winner|champion|championship|victory|victor|title|defeated|beat|gold medal|trophy)\b", q_lower):
+            return "award_winner"
+        elif re.search(r"\b(founded|founder|started|established|originated|invented|inventor)\b", q_lower):
+            return "founder_creator"
+        elif re.search(r"\b(directed|director|filmmaker|wrote|author|novelist|composed|composer)\b", q_lower):
+            return "director_author"
+        elif re.search(r"\b(mother|father|parent|son|daughter|child|mom|dad)\b", q_lower):
+            return "parent_child"
+        elif re.search(r"\b(married|spouse|wife|husband|wedding)\b", q_lower):
+            return "spouse_marriage"
+        elif re.search(r"\b(born|birth|b\.)\b", q_lower):
             return "birth_date"
         elif re.search(r"\b(died|death|d\.)\b", q_lower):
             return "death_date"
@@ -117,11 +127,11 @@ class RuleBasedClaimExtractor(BaseClaimExtractor):
             return "species_count"
         elif re.search(r"\b(population|inhabitants|people)\b", q_lower):
             return "population"
-        elif re.search(r"\b(located|location|where|city|town|state|country|province|county)\b", q_lower):
+        elif re.search(r"\b(located|location|where|city|town|state|country|province|county|capital)\b", q_lower):
             return "location"
-        elif re.search(r"\b(released|release|year|when|published|directed|written|created)\b", q_lower):
+        elif re.search(r"\b(released|release|year|when|published|created)\b", q_lower):
             return "release_date"
-        elif re.search(r"\b(starred|played|actor|member|band|group)\b", q_lower):
+        elif re.search(r"\b(starred|played|actor|actress|member|band|group|cast)\b", q_lower):
             return "membership"
         return "general_fact"
 

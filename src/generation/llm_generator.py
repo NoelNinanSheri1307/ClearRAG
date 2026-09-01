@@ -22,7 +22,7 @@ class LLMGenerator:
         model_name: str = "Qwen/Qwen2.5-1.5B-Instruct",
         device: Optional[str] = None,
         torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        default_max_new_tokens: int = 128,
+        default_max_new_tokens: int = 384,
         default_temperature: float = 0.0,
         default_do_sample: bool = False,
     ):

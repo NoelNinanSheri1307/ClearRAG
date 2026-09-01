@@ -121,11 +121,32 @@ class EvidenceVerifier:
         if not entity_found:
             return 0.0, False, "Target entities missing in passage"
 
+        # Temporal / Year constraint check
+        # If the claim/question explicitly specifies a 4-digit year (e.g. 2026, 1994, 2021),
+        # the supporting passage MUST mention that specific year.
+        claim_years = re.findall(r"\b(1[7-9]\d{2}|20\d{2})\b", claim.source_question or claim.text)
+        if claim_years:
+            passage_years = set(re.findall(r"\b(1[7-9]\d{2}|20\d{2})\b", passage))
+            if not any(y in passage_years for y in claim_years):
+                return 0.0, False, f"Temporal constraint missing: passage lacks specified year(s) {claim_years}"
+
         # Predicate-specific verification check
         predicate_satisfied = False
         pred = claim.predicate
 
-        if pred == "birth_date":
+        if pred == "award_winner":
+            # Must mention win/champion/award tokens and cannot be solely a bid/nomination/proposal
+            has_win_token = any(k in p_lower for k in ["won", "winner", "champions", "champion", "championship", "victor", "victory", "title", "defeated", "beat", "gold medal", "crowned"])
+            predicate_satisfied = has_win_token
+        elif pred == "founder_creator":
+            predicate_satisfied = any(k in p_lower for k in ["founded", "founder", "started", "established", "originated", "invented", "created", "instituted", "launched"])
+        elif pred == "director_author":
+            predicate_satisfied = any(k in p_lower for k in ["directed", "director", "filmmaker", "wrote", "author", "novelist", "composed", "composer", "screenplay"])
+        elif pred == "parent_child":
+            predicate_satisfied = any(k in p_lower for k in ["mother", "father", "parent", "parents", "son", "daughter", "child", "children", "born to", "gave birth"])
+        elif pred == "spouse_marriage":
+            predicate_satisfied = any(k in p_lower for k in ["married", "spouse", "wife", "husband", "wedding", "marry", "wed"])
+        elif pred == "birth_date":
             # Must mention birth tokens and a year/date
             has_birth_token = any(k in p_lower for k in ["born", "birth", "b.", "birthdate"])
             has_year = bool(re.search(r"\b(17|18|19|20)\d{2}\b", passage))
